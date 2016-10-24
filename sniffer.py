@@ -22,6 +22,25 @@ class IP:
         self.payload = payload
 
 
+    def __str__(self):
+        string = ''
+        string += '****************** IP PACKET ******************\n'
+        string += 'Time: ' + str(self.time) + "\n"
+        string += 'Version: ' + str(self.version) + "\n"
+        string += 'IHL: '+ str(self.ihl) + "\n"
+        string += 'TOS: ' + str(self.service) + "\n"
+        string += 'ID: ' + str(self.id) + "\n"
+        string += 'Flags: ' + str(self.flags) + "\n"
+        string += 'Offset: ' + str(self.offset) + "\n"
+        string += 'Total Length: ' + str(self.length) + "\n"
+        string += 'TTL: ' + str(self.ttl) + "\n"
+        string += 'Protocol: ' + str(self.protocol) + "\n"
+        string += 'Checksum: ' + str(self.checksum) + "\n"
+        string += 'Source IP: ' + self.src + "\n"
+        string += 'Destination IP: ' + self.dest + "\n"
+        string += 'Payload: ' + str(binascii.hexlify(self.payload)) + "\n"
+        return string
+
     def setTime(self, time):
         self.time = time
 
@@ -40,6 +59,24 @@ class TCP:
         self.urgentPointer = urgentPointer
         self.payload = payload
 
+    def __str__(self):
+        string = ''
+        string += str(self.ip)
+        string += '------------------ TCP PACKET ------------------\n'
+        string += 'Source Port: ' + str(self.src_port) + "\n"
+        string += 'Destination Port: ' + str(self.dest_port) + "\n"
+        string += 'Sequence Number: ' + str(self.sequence) + "\n"
+        string += 'Acknowledgment Number: ' + str(self.ack) + "\n"
+        string += 'Offset: ' + str(self.offset) + "\n"
+        string += 'ECN: ' + str(self.ecn) + "\n"
+        string += 'Flags: ' + str(self.flags) + "\n"
+        string += 'Window:: ' + str(self.window) + "\n"
+        string += 'Checksum: ' + str(self.checksum) + "\n"
+        string += 'Urgent Pointer: ' + str(self.urgentPointer) + "\n"
+        string += 'Payload: ' + str(binascii.hexlify(self.payload)) + "\n"
+        string += '-------------------------------------------------'
+        return string
+
     def setIp(self, ip):
         self.ip = ip
 
@@ -51,6 +88,18 @@ class UDP:
         self.checksum = checksum
         self.payload = payload
 
+    def __str__(self):
+        string = ''
+        string += str(self.ip)
+        string += '------------------ UDP PACKET ------------------\n'
+        string += 'Source Port: ' + str(self.src_port) + "\n"
+        string += 'Destination Port: ' + str(self.dest_port) + "\n"
+        string += 'Length: ' + str(self.length) + "\n"
+        string += 'Checksum: ' + str(self.checksum) + "\n"
+        string += 'Payload: ' + str(binascii.hexlify(self.payload)) + "\n"
+        string += '-------------------------------------------------'
+        return string
+
     def setIp(self, ip):
         self.ip = ip
 
@@ -58,8 +107,19 @@ class HTTP:
     def __init__(self, data):
         self.data = data
 
+    def __str__(self):
+        string = ''
+        string += str(self.tcp)  + "\n" 
+        string += '~~~~~~~~~~~~~~~~~ HTTP PACKET ~~~~~~~~~~~~~~~~~\n'
+        string += self.data +"\n"
+        string += '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        return string
+
     def setTcp(self, tcp):
         self.tcp = tcp
+
+    def setIsSecure(self, isSecure):
+        self.isSecure = isSecure
 
 class DNS:
     def __init__(self, transID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, data):
@@ -70,6 +130,31 @@ class DNS:
         self.numAuthority = numAuthority
         self.numAdditional = numAdditional
         self.data = data
+
+    def __str__(self):
+        string = ''
+        string += str(self.udp) + "\n"
+        if self.type == "query":
+            string += '~~~~~~~~~~~~~~ DNS QUERY SNIFFED ~~~~~~~~~~~~~~\n'
+            string += 'TransID: '+str(self.transID) + "\n"
+            string += 'Flags: 0x' + format(self.flags, '02x') + "\n"
+            string += 'NumQuestions: ' + str(self.numQuestions) + "\n"
+            string += 'NumuAnswers: ' + str(self.numuAnswers) + "\n"
+            string += 'NumAuthority: ' + str(self.numAuthority) + "\n"
+            string += 'NumAdditional: ' + str(self.numAdditional) + "\n"
+            string += 'QuerySection: \n' + self.data + "\n"
+            string += '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        else:
+            string += '~~~~~~~~~~~~~~~ DNS RESP SNIFFED ~~~~~~~~~~~~~~~\n'
+            string += 'TransID: '+str(self.transID) + "\n"
+            string += 'Flags: 0x' + format(self.flags, '02x') + "\n"
+            string += 'NumQuestions: ' + str(self.numQuestions) + "\n"
+            string += 'NumuAnswers: ' + str(self.numuAnswers) + "\n"
+            string += 'NumAuthority: ' + str(self.numAuthority) + "\n"
+            string += 'NumAdditional: ' + str(self.numAdditional) + "\n"
+            string += 'RespSection: \n' + self.data + "\n"
+            string += '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+        return string
 
     def setUdp(self, udp):
         self.udp = udp
@@ -96,109 +181,60 @@ def main():
 
     while datetime.datetime.now() < endTime:
         raw = sniffer.recvfrom(65565)[0]
+        counter += 1
         ip = parseIP(raw)
         ip.setTime(datetime.datetime.now())
 
         if ip.protocol == 'TCP':
-            # print('--------------- TCP PACKET SNIFFED ---------------')
+
             tcp = parseTCP(ip.payload)
             tcp.setIp(ip)
-
-            # print('Source Port: ' + str(tcp.src_port))
-            # print('Destination Port: ' + str(tcp.dest_port))
-            # print('Sequence Number: ' + str(tcp.sequence))
-            # print('Acknowledgment Number: ' + str(tcp.ack))
-            # print('Offset: ' + str(tcp.offset))
-            # print('ECN: ' + str(tcp.ecn))
-            # print('Flags: ' + str(tcp.flags))
-            # print('Window:: ' + str(tcp.window))
-            # print('Checksum: ' + str(tcp.checksum))
-            # print('Urgent Pointer: ' + str(tcp.urgentPointer))
-            # print('Payload: ' + str(binascii.hexlify(tcp.payload)))
 
             if tcp.src_port == 80 or tcp.dest_port == 80:
                 http = parseHTTP(tcp.payload)
                 http.setTcp(tcp)
-
-                # if len(http.data) > 0:
-                #     print('~~~~~~~~~~~~~~ HTTP PACKET SNIFFED ~~~~~~~~~~~~~~')
-                #     print(http.data)
-                #     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
+                http.setIsSecure(False)
                 pickle.dump(http, outFile, protocol=pickle.HIGHEST_PROTOCOL)
             elif tcp.src_port == 443 or tcp.dest_port == 443:
                 https = parseHTTP(tcp.payload)
                 https.setTcp(tcp)
-
-                # if len(https.data) > 0:
-                #     print('~~~~~~~~~~~~~~ HTTPS PACKET SNIFFED ~~~~~~~~~~~~~')
-                #     print(https.data)
-                #     print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
-
+                https.setIsSecure(True)
                 pickle.dump(https, outFile, protocol=pickle.HIGHEST_PROTOCOL)
             else:
                 pickle.dump(tcp, outFile, protocol=pickle.HIGHEST_PROTOCOL)
 
             # print('-------------------------------------------------')
         elif ip.protocol == 'UDP':
-            # print('--------------- UDP PACKET SNIFFED ---------------')
             udp = parseUDP(ip.payload)
             udp.setIp(ip)
 
-            # print('Source Port: ' + str(udp.src_port))
-            # print('Destination Port: ' + str(udp.dest_port))
-            # print('Length: ' + str(udp.length))
-            # print('Checksum: ' + str(udp.checksum))
-            # print('Payload: ' + str(binascii.hexlify(udp.payload)))
-
             if udp.dest_port == 53:
                 dns = parseDNSQuery(udp.payload)
-                # print('~~~~~~~~~~~~~~ DNS QUERY SNIFFED ~~~~~~~~~~~~~~')
-                # print('TransID: '+str(dns.transID))
-                # print('Flags: 0x' + format(dns.flags, '02x'))
-                # print('NumQuestions: ' + str(dns.numQuestions))
-                # print('NumuAnswers: ' + str(dns.numuAnswers))
-                # print('NumAuthority: ' + str(dns.numAuthority))
-                # print('NumAdditional: ' + str(dns.numAdditional))
-                # print('QuerySection: ' + dns.data)
-                # print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+                dns.setUdp(udp)
                 pickle.dump(dns, outFile, protocol=pickle.HIGHEST_PROTOCOL)
             elif udp.src_port == 53:
                 dns = parseDNSResp(udp.payload)
-                # print('~~~~~~~~~~~~~~~ DNS RESP SNIFFED ~~~~~~~~~~~~~~~')
-                # print('TransID: '+str(dns.transID))
-                # print('Flags: 0x' + format(dns.flags, '02x'))
-                # print('NumQuestions: ' + str(dns.numQuestions))
-                # print('NumuAnswers: ' + str(dns.numuAnswers))
-                # print('NumAuthority: ' + str(dns.numAuthority))
-                # print('NumAdditional: ' + str(dns.numAdditional))
-                # print('RespSection: ' + dns.data)
-                # print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+                dns.setUdp(udp)
                 pickle.dump(dns, outFile, protocol=pickle.HIGHEST_PROTOCOL)
             else:
                 pickle.dump(udp, outFile, protocol=pickle.HIGHEST_PROTOCOL)
 
-
-            # print('-------------------------------------------------')
         else:
             pickle.dump(ip, outFile, protocol=pickle.HIGHEST_PROTOCOL)
 
-        # print('*************************************************\n\n')
 
     outFile.close()
 
     inFile = open("data.dump","rb")
-
     while True:
         try:
             packet = pickle.load(inFile)
-            print(repr(packet))
+            packets.append(packet)
+            print(packet)
+            print('*************************************************\n')
         except (EOFError):
-            print("done")
             break
 
-
-    print("hello")
     inFile.close()
 
 
@@ -278,7 +314,7 @@ def parseDNSQuery(udp_payload):
         querySection = str(querySection)
 
     dnsPacket = DNS(TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, querySection)
-    dnsPacket.setType(flags >> 15)
+    dnsPacket.setType("query")
     return dnsPacket
 
 def parseDNSResp(udp_payload):
@@ -290,7 +326,7 @@ def parseDNSResp(udp_payload):
         respSection = str(respSection)
 
     dnsPacket = DNS(TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, respSection)
-    dnsPacket.setType(flags >> 15)
+    dnsPacket.setType("response")
     return dnsPacket
 
 main()
