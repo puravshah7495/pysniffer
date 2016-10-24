@@ -4,6 +4,7 @@ import struct
 import datetime
 import binascii
 import cPickle as pickle
+import sys
 
 class IP:
     def __init__(self, version, ihl, service, length, id, flags, offset, ttl, prot, checksum, src, dest, payload):
@@ -224,18 +225,67 @@ def sniff():
     outFile.close()
 
 def main():
-    sniff()
-    inFile = open("data.dump","rb")
-    while True:
-        try:
-            packet = pickle.load(inFile)
-            print(packet)
-            print('*************************************************\n')
-        except (EOFError):
-            break
-
-    inFile.close()
-
+    dataChoice = 0
+    while dataChoice != 3:
+        print("Please choose data source: \n 1) Parse dump file\n 2) Start packet sniffing\n 3) Exit")
+        dataChoice = int(raw_input("Choice: "))
+        if dataChoice == 1:
+            fileName = raw_input("Please enter file name: ")
+            inFile = open(fileName,"rb")
+            packets = []
+            while True:
+                try:
+                    packet = pickle.load(inFile)
+                    packets.append(packet)
+                except (EOFError):
+                    break
+            inFile.close()
+            parseChoice = 0
+            while parseChoice != 4:
+                print("\nPlease choose data action:\n 1) Parse IP, TCP, UDP, DNS, and HTTP(S) packets\n 2) Search Packets\n 3) Get Captured DNS Queries\n 4) Go Back")
+                parseChoice = int(raw_input("Choice: "))
+                if parseChoice == 1:
+                    print("Choose Packet Type:\n 1) IP\n 2) TCP\n 3) UDP\n 4) HTTP\n 5) DNS")
+                    typeChoice = int(raw_input("Choice: "))
+                    if typeChoice == 1:
+                        for pkt in packets:
+                            if isinstance(pkt, IP):
+                                print(pkt)
+                                print('***********************************************\n')
+                    elif typeChoice == 2:
+                        for pkt in packets:
+                            if isinstance(pkt, TCP):
+                                print(pkt)
+                                print('***********************************************\n')
+                    elif typeChoice == 3:
+                        for pkt in packets:
+                            if isinstance(pkt, UDP):
+                                print(pkt)
+                                print('***********************************************\n')
+                    elif typeChoice == 4:
+                        for pkt in packets:
+                            if isinstance(pkt, HTTP):
+                                print(pkt)
+                                print('***********************************************\n')
+                    elif typeChoice == 5:
+                        for pkt in packets:
+                            if isinstance(pkt, DNS):
+                                print(pkt)
+                                print('***********************************************\n')
+                    else:
+                        print("Invalid Choice\n")
+                elif parseChoice == 3:
+                    for pkt in packets:
+                        if isinstance(pkt, DNS):
+                            print(pkt)
+                            print('***********************************************\n')
+                elif parseChoice != 4:
+                    print("Invalid Choice\n")
+            print("")
+        elif dataChoice == 2:
+            sniff()
+        elif dataChoice != 3:
+            print("Invalid Choice\n")
 
 def parseIP(raw):
     version_IHL, service, length, id, flags_offset, ttl, prot, checksum, src, dest = struct.unpack('!BBHHHBBH4s4s', raw[:20])
