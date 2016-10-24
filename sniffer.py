@@ -4,6 +4,46 @@ import struct
 import datetime
 import binascii
 
+class IP:
+    def __init__(self, src, dest, version, length, protocol, ttl):
+        self.src = src
+        self.dest = dest
+        self.version = version
+        self.length = length
+        self.protocol = protocol
+        self.ttl = ttl
+
+class TCP:
+    def __init__(self, ip, src, dest, seq, ack, length):
+        self.ip = ip
+        self.src = src
+        self.dest = dest
+        self.sequence = seq
+        self.ack = ack
+        self.length = length
+
+class UDP:
+    def __init__(self, ip, src, dest, checksum, length):
+        self.ip = ip
+        self.src = src
+        self.dest = dest
+        self.checksum = checksum
+        self.length = length
+
+class HTTP:
+    def __init__(self, tcp, data):
+        self.tcp = tcp
+        self.data = data
+
+class DNS:
+    def __init__(self, transID, flags, numQuestions, numuAnswers, numAuthority, numAdditional):
+        self.transID = transID
+        self.flags = flags
+        self.numQuestions = numQuestions
+        self.numuAnswers = numuAnswers
+        self.numAuthority = numAuthority
+        self.numAdditional = numAdditional
+
 def main():
     if platform.system() == "Windows":
         sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
@@ -11,11 +51,15 @@ def main():
         sniffer.bind((HOST, 0))
         sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
     else:
-        sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+        sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
     sniffer.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
 
-    while True:
+    timeout = raw_input("Please enter time period length: ")
+    currentTime = datetime.datetime.now()
+    endTime = currentTime + datetime.timedelta(seconds=int(timeout))
+
+    while datetime.datetime.now() < endTime:
         raw = sniffer.recvfrom(65565)[0]
         IP_version, IP_IHL, IP_service, IP_length, IP_id, IP_flags, IP_offset, IP_ttl, IP_prot, IP_checksum, IP_src, IP_dest, IP_payload = parseIP(raw)
 
