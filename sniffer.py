@@ -162,7 +162,7 @@ class DNS:
     def setType(self, type):
         self.type = type
 
-def main():
+def sniff():
     if platform.system() == "Windows":
         sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
         HOST = socket.gethostbyname(socket.gethostname())
@@ -181,7 +181,6 @@ def main():
 
     while datetime.datetime.now() < endTime:
         raw = sniffer.recvfrom(65565)[0]
-        counter += 1
         ip = parseIP(raw)
         ip.setTime(datetime.datetime.now())
 
@@ -222,14 +221,14 @@ def main():
         else:
             pickle.dump(ip, outFile, protocol=pickle.HIGHEST_PROTOCOL)
 
-
     outFile.close()
 
+def main():
+    sniff()
     inFile = open("data.dump","rb")
     while True:
         try:
             packet = pickle.load(inFile)
-            packets.append(packet)
             print(packet)
             print('*************************************************\n')
         except (EOFError):
