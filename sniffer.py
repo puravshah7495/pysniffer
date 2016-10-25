@@ -5,6 +5,9 @@ import datetime
 import binascii
 import cPickle as pickle
 import sys
+import os
+import re
+import dpkt
 
 class IP:
     def __init__(self, version, ihl, service, length, id, flags, offset, ttl, prot, checksum, src, dest, payload):
@@ -110,7 +113,7 @@ class HTTP:
 
     def __str__(self):
         string = ''
-        string += str(self.tcp)  + "\n" 
+        string += str(self.tcp)  + "\n"
         string += '~~~~~~~~~~~~~~~~~ HTTP PACKET ~~~~~~~~~~~~~~~~~\n'
         string += self.data +"\n"
         string += '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -169,19 +172,24 @@ def sniff():
         HOST = socket.gethostbyname(socket.gethostname())
         sniffer.bind((HOST, 0))
         sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+        sniffer.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
     else:
         sniffer = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_TCP)
 
-    sniffer.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
 
     timeout = raw_input("Please enter time period length: ")
     currentTime = datetime.datetime.now()
     endTime = currentTime + datetime.timedelta(seconds=int(timeout))
+    sniffer.settimeout(int(timeout))
 
     outFile = open("data.dump", "wb")
 
     while datetime.datetime.now() < endTime:
-        raw = sniffer.recvfrom(65565)[0]
+        try:
+            raw = sniffer.recvfrom(65565)[0]
+        except socket.timeout:
+            break;
+
         ip = parseIP(raw)
         ip.setTime(datetime.datetime.now())
 
@@ -274,6 +282,14 @@ def main():
                                 print('***********************************************\n')
                     else:
                         print("Invalid Choice\n")
+                elif parseChoice == 2:
+                    keyword = raw_input("Enter keyword: ")
+                    for pkt in packets:
+                        for key, value in pkt.__dict__.iteritems():
+                            keyMatch = re.match(r'%s'%keyword, str(value))
+                            if keyMatch:
+                                print(pkt)
+                                print('***********************************************\n')
                 elif parseChoice == 3:
                     for pkt in packets:
                         if isinstance(pkt, DNS):
@@ -355,27 +371,31 @@ def parseHTTP(tcp_payload):
 
 def parseDNSQuery(udp_payload):
     TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional   = struct.unpack('!HHHHHH', udp_payload[:12])
-    querySection = udp_payload[12:]
 
+    querySection = '\n'
+
+    # reconstruct DNS Questions
     try:
-        querySection = querySection.decode('ascii', 'ignore')
+        dns = dpkt.dns.DNS(udp_payload)
+        for question in dns.qd:
+            querySection += ('Domain: ' + str(question.name) + '\n')
     except:
-        querySection = str(querySection)
+        pass
 
-    dnsPacket = DNS(TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, querySection)
-    dnsPacket.setType("query")
-    return dnsPacket
+    return UDP(transID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, querySection)
 
 def parseDNSResp(udp_payload):
     TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional   = struct.unpack('!HHHHHH', udp_payload[:12])
-    respSection = udp_payload[12:]
-    try:
-        respSection = respSection.decode('ascii', 'ignore')
-    except:
-        respSection = str(respSection)
+    respSection = '\n'
 
-    dnsPacket = DNS(TransID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, respSection)
-    dnsPacket.setType("response")
-    return dnsPacket
+    #reconstruct DNS Answers
+    try:
+        dns = dpkt.dns.DNS(udp_payload)
+        for answer in dns.an:
+           respSection += ('Domain: ' + str(answer.name) + '\tIP Address: ' + str(socket.inet_ntoa(answer.rdata))+'\n')
+    except:
+        pass
+
+    return UDP(transID, flags, numQuestions, numuAnswers, numAuthority, numAdditional, respSection)
 
 main()
